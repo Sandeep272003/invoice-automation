@@ -1,0 +1,103 @@
+{
+  "schemaName": "Invoice Automation Enterprise v2.0 — SQLite Schema",
+  "description": "Local SQLite database with WAL mode, indexed queries, and 3 tables",
+  "tables": [
+    {
+      "name": "invoices",
+      "description": "Primary invoice table with tracking ID, UUID, extracted data, and workflow state",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true, "autoincrement": true },
+        { "name": "tracking_id", "type": "TEXT", "unique": true, "description": "INV-YYYYMMDD-XXXX format" },
+        { "name": "invoice_uuid", "type": "TEXT", "description": "Standard UUID v4 per invoice, embedded in PDF" },
+        { "name": "internal_id", "type": "TEXT", "description": "32 hex char internal ID" },
+        { "name": "vendor", "type": "TEXT" },
+        { "name": "vendor_uid", "type": "TEXT", "description": "Tax ID / registration number" },
+        { "name": "vendor_iban", "type": "TEXT" },
+        { "name": "invoice_number", "type": "TEXT" },
+        { "name": "invoice_date", "type": "TEXT", "format": "YYYY-MM-DD" },
+        { "name": "due_date", "type": "TEXT", "format": "YYYY-MM-DD" },
+        { "name": "net_amount", "type": "REAL" },
+        { "name": "vat_amount", "type": "REAL" },
+        { "name": "vat_percent", "type": "REAL" },
+        { "name": "gross_amount", "type": "REAL" },
+        { "name": "currency", "type": "TEXT", "default": "EUR" },
+        { "name": "cost_center", "type": "TEXT" },
+        { "name": "line_items", "type": "TEXT", "description": "JSON array of {description, quantity, unit_price, total}" },
+        { "name": "confidence", "type": "REAL", "default": 0 },
+        { "name": "anomalies", "type": "TEXT", "description": "JSON array of warning strings" },
+        { "name": "application_status", "type": "TEXT", "default": "Draft" },
+        { "name": "selected_departments", "type": "TEXT", "description": "JSON array of department names" },
+        { "name": "send_for_approval", "type": "INTEGER", "default": 0 },
+        { "name": "approved_by", "type": "TEXT" },
+        { "name": "approved_at", "type": "TEXT" },
+        { "name": "rejection_reason", "type": "TEXT" },
+        { "name": "source_email", "type": "TEXT" },
+        { "name": "sender", "type": "TEXT" },
+        { "name": "sender_email", "type": "TEXT" },
+        { "name": "sender_name", "type": "TEXT" },
+        { "name": "email_subject", "type": "TEXT" },
+        { "name": "email_received", "type": "INTEGER", "default": 1 },
+        { "name": "received_at", "type": "TEXT" },
+        { "name": "pdf_path", "type": "TEXT" },
+        { "name": "pdf_stored", "type": "INTEGER", "default": 0 },
+        { "name": "pdf_filename", "type": "TEXT" },
+        { "name": "pdf_size_bytes", "type": "INTEGER", "default": 0 },
+        { "name": "duplicate_of", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "updated_at", "type": "TEXT" }
+      ],
+      "indexes": [
+        { "name": "idx_invoices_tracking", "columns": ["tracking_id"] },
+        { "name": "idx_invoices_number", "columns": ["invoice_number"] },
+        { "name": "idx_invoices_status", "columns": ["application_status"] }
+      ]
+    },
+    {
+      "name": "audit_trail",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true, "autoincrement": true },
+        { "name": "timestamp", "type": "TEXT" },
+        { "name": "action", "type": "TEXT", "description": "pdf_extraction, ai_extraction, invoice_created, approved, etc." },
+        { "name": "tracking_id", "type": "TEXT" },
+        { "name": "performed_by", "type": "TEXT", "default": "system" },
+        { "name": "details", "type": "TEXT" },
+        { "name": "service_version", "type": "TEXT" }
+      ],
+      "indexes": [
+        { "name": "idx_audit_tracking", "columns": ["tracking_id"] }
+      ]
+    },
+    {
+      "name": "dead_letter_queue",
+      "description": "Failed invoices for manual inspection and retry",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true, "autoincrement": true },
+        { "name": "tracking_id", "type": "TEXT" },
+        { "name": "internal_id", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "failed_step", "type": "TEXT" },
+        { "name": "error_message", "type": "TEXT" },
+        { "name": "error_type", "type": "TEXT" },
+        { "name": "email_subject", "type": "TEXT" },
+        { "name": "sender_email", "type": "TEXT" },
+        { "name": "retry_count", "type": "INTEGER", "default": 0 },
+        { "name": "last_retry_at", "type": "TEXT" },
+        { "name": "resolved", "type": "INTEGER", "default": 0 },
+        { "name": "resolved_at", "type": "TEXT" },
+        { "name": "raw_payload", "type": "TEXT" }
+      ],
+      "indexes": [
+        { "name": "idx_dlq_resolved", "columns": ["resolved"] }
+      ]
+    }
+  ],
+  "views": [
+    { "table": "invoices", "name": "All Invoices", "sql": "SELECT * FROM invoices ORDER BY created_at DESC" },
+    { "table": "invoices", "name": "Pending Review", "sql": "SELECT * FROM invoices WHERE application_status = 'Draft' ORDER BY created_at DESC" },
+    { "table": "invoices", "name": "Approved", "sql": "SELECT * FROM invoices WHERE application_status = 'Fully Approved' ORDER BY created_at DESC" },
+    { "table": "invoices", "name": "Rejected", "sql": "SELECT * FROM invoices WHERE application_status = 'Rejected' ORDER BY created_at DESC" },
+    { "table": "invoices", "name": "Low Confidence", "sql": "SELECT * FROM invoices WHERE confidence < 0.85 ORDER BY confidence ASC" },
+    { "table": "audit_trail", "name": "Timeline", "sql": "SELECT * FROM audit_trail ORDER BY timestamp DESC" },
+    { "table": "dead_letter_queue", "name": "Unresolved Failures", "sql": "SELECT * FROM dead_letter_queue WHERE resolved = 0 ORDER BY created_at DESC" }
+  ]
+}

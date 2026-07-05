@@ -1,0 +1,103 @@
+{
+  "schemaName": "Invoice Automation Enterprise v2.0",
+  "tables": [
+    {
+      "name": "Invoices",
+      "description": "Primary invoice table with tracking ID, UUID, extracted data, and workflow state",
+      "fields": [
+        { "name": "Tracking ID", "type": "singleLineText", "description": "Unique system tracking ID (INV-YYYYMMDD-XXXX)" },
+        { "name": "Invoice UUID", "type": "singleLineText", "description": "Standard UUID v4 per invoice, embedded in PDF" },
+        { "name": "Vendor", "type": "singleLineText" },
+        { "name": "Vendor UID", "type": "singleLineText" },
+        { "name": "Vendor IBAN", "type": "singleLineText" },
+        { "name": "Invoice Number", "type": "singleLineText" },
+        { "name": "Invoice Date", "type": "date", "options": { "dateFormat": { "name": "iso" } } },
+        { "name": "Due Date", "type": "date", "options": { "dateFormat": { "name": "iso" } } },
+        { "name": "Net Amount", "type": "currency", "options": { "precision": 2, "symbol": "\u20ac" } },
+        { "name": "VAT Amount", "type": "currency", "options": { "precision": 2, "symbol": "\u20ac" } },
+        { "name": "VAT %", "type": "percent", "options": { "precision": 1 } },
+        { "name": "Gross Amount", "type": "currency", "options": { "precision": 2, "symbol": "\u20ac" } },
+        { "name": "Currency", "type": "singleSelect", "options": { "choices": [
+          { "name": "EUR", "color": "blueLight" },{ "name": "USD", "color": "greenLight" },
+          { "name": "GBP", "color": "yellowLight" },{ "name": "CHF", "color": "redLight" },
+          { "name": "INR", "color": "orangeLight" },{ "name": "SEK", "color": "purpleLight" }
+        ]}},
+        { "name": "Cost Center", "type": "singleLineText" },
+        { "name": "Line Items", "type": "longText", "description": "JSON array of {description, quantity, unit_price, total}" },
+        { "name": "Confidence", "type": "percent", "options": { "precision": 0 } },
+        { "name": "Anomalies", "type": "longText", "description": "Warnings, one per line" },
+        { "name": "Application Status", "type": "singleSelect", "options": { "choices": [
+          { "name": "Draft", "color": "grayLight" },
+          { "name": "Fully Approved", "color": "greenLight" },
+          { "name": "Rejected", "color": "redLight" }
+        ]}},
+        { "name": "Selected Departments", "type": "multipleSelects", "options": { "choices": [
+          { "name": "Finance", "color": "blueDark" },{ "name": "Engineering", "color": "tealDark" },
+          { "name": "Marketing", "color": "pinkDark" },{ "name": "Operations", "color": "orangeDark" },
+          { "name": "Sales", "color": "greenDark" },{ "name": "HR", "color": "purpleDark" }
+        ]}},
+        { "name": "Send for Approval", "type": "checkbox" },
+        { "name": "Approved By", "type": "singleLineText" },
+        { "name": "Approved At", "type": "dateTime", "options": { "dateFormat": { "name": "iso" }, "timeFormat": { "name": "24hour" }, "timeZone": "utc" } },
+        { "name": "Rejection Reason", "type": "singleLineText" },
+        { "name": "Source Email", "type": "email" },
+        { "name": "Sender", "type": "singleLineText" },
+        { "name": "Sender Email", "type": "email" },
+        { "name": "Sender Name", "type": "singleLineText" },
+        { "name": "Email Subject", "type": "singleLineText" },
+        { "name": "Email Received", "type": "checkbox" },
+        { "name": "Received At", "type": "dateTime", "options": { "dateFormat": { "name": "iso" }, "timeFormat": { "name": "24hour" }, "timeZone": "utc" } },
+        { "name": "PDF Attachment", "type": "multipleAttachments", "description": "Original PDF with tracking ID + UUID watermark" }
+      ]
+    },
+    {
+      "name": "AuditTrail",
+      "fields": [
+        { "name": "Timestamp", "type": "dateTime", "options": { "dateFormat": { "name": "iso" }, "timeFormat": { "name": "24hour" }, "timeZone": "utc" } },
+        { "name": "Action", "type": "singleSelect", "options": { "choices": [
+          { "name": "pdf_extraction", "color": "blueLight" },{ "name": "pdf_stamping", "color": "blueDark" },
+          { "name": "ai_extraction", "color": "purpleLight" },{ "name": "data_cleaning", "color": "purpleDark" },
+          { "name": "invoice_created", "color": "greenLight" },{ "name": "duplicate_detected", "color": "redLight" },
+          { "name": "approval_sent", "color": "orangeLight" },{ "name": "approved", "color": "greenDark" },
+          { "name": "rejected", "color": "redDark" },{ "name": "error", "color": "redDark" }
+        ]}},
+        { "name": "Tracking ID", "type": "singleLineText" },
+        { "name": "Performed By", "type": "singleLineText" },
+        { "name": "Details", "type": "longText" },
+        { "name": "Service Version", "type": "singleLineText" }
+      ]
+    },
+    {
+      "name": "DeadLetterQueue",
+      "description": "Failed invoices for manual inspection and retry",
+      "fields": [
+        { "name": "Tracking ID", "type": "singleLineText" },
+        { "name": "Internal ID", "type": "singleLineText" },
+        { "name": "Created At", "type": "dateTime", "options": { "dateFormat": { "name": "iso" } } },
+        { "name": "Failed Step", "type": "singleSelect", "options": { "choices": [
+          { "name": "pdf_extraction", "color": "redLight" },{ "name": "pdf_stamping", "color": "redLight" },
+          { "name": "ai_extraction", "color": "redDark" },{ "name": "data_cleaning", "color": "redDark" },
+          { "name": "airtable_create", "color": "redDark" },{ "name": "unknown", "color": "grayLight" }
+        ]}},
+        { "name": "Error Message", "type": "longText" },
+        { "name": "Error Type", "type": "singleLineText" },
+        { "name": "Email Subject", "type": "singleLineText" },
+        { "name": "Sender Email", "type": "email" },
+        { "name": "Retry Count", "type": "number", "options": { "precision": 0 } },
+        { "name": "Last Retry At", "type": "dateTime" },
+        { "name": "Resolved", "type": "checkbox" },
+        { "name": "Resolved At", "type": "dateTime" },
+        { "name": "Raw Payload", "type": "longText" }
+      ]
+    }
+  ],
+  "views": [
+    { "table": "Invoices", "name": "All Invoices", "type": "grid" },
+    { "table": "Invoices", "name": "Pending Review", "type": "grid", "filter": "{Application Status} = 'Draft'" },
+    { "table": "Invoices", "name": "Approved", "type": "grid", "filter": "{Application Status} = 'Fully Approved'" },
+    { "table": "Invoices", "name": "Rejected", "type": "grid", "filter": "{Application Status} = 'Rejected'" },
+    { "table": "Invoices", "name": "Low Confidence", "type": "grid", "filter": "{Confidence} < 85" },
+    { "table": "AuditTrail", "name": "Timeline", "type": "grid", "sorts": [{ "field": "Timestamp", "direction": "desc" }] },
+    { "table": "DeadLetterQueue", "name": "Unresolved Failures", "type": "grid", "filter": "{Resolved} = FALSE()" }
+  ]
+}
