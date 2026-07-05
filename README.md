@@ -1,4 +1,4 @@
-# Invoice Automation Enterprise v2.0
+# Invoice Automation Enterprise
 
 ## AI-Powered Invoice Processing with UUID Tracking, Circuit Breakers, and Dead Letter Queue
 
